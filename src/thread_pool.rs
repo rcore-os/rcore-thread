@@ -34,7 +34,8 @@ pub trait Context {
     unsafe fn switch_to(&mut self, target: &mut Context);
 
     /// A tid is allocated for this context
-    fn set_tid(&mut self, tid: Tid);
+    /// (temporary workaround for rCore)
+    fn set_tid(&mut self, _tid: Tid) {}
 }
 
 pub struct ThreadPool {
