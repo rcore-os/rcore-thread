@@ -3,6 +3,7 @@
 #![feature(linkage)]
 #![feature(asm)]
 #![feature(naked_functions)]
+#![feature(global_asm)]
 
 extern crate alloc;
 
