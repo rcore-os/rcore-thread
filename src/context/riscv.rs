@@ -70,7 +70,7 @@ impl Registers {
         addi sp, sp, (XLENB*13)
 
         // load arg0 for entry
-        mov a0, s0
+        mv a0, s0
 
         STORE zero, 0(a1)
         ret"
@@ -148,7 +148,7 @@ impl RegistersSatp {
         addi sp, sp, (XLENB*14)
 
         // load arg0 for entry
-        mov a0, s0
+        mv a0, s0
 
         STORE zero, 0(a1)
         ret"
