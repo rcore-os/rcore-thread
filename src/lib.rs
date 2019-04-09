@@ -26,7 +26,7 @@ pub mod context;
 #[path = "./context/riscv.rs"]
 pub mod context;
 
-#[cfg(target_arch = "mipsel")]
+#[cfg(target_arch = "mips")]
 #[path = "./context/mipsel.rs"]
 pub mod context;
 

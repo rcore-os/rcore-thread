@@ -9,7 +9,7 @@ pub use self::riscv::*;
 #[cfg(all(not(feature = "userland"), target_arch = "aarch64"))]
 pub use self::aarch64::*;
 
-#[cfg(all(not(feature = "userland"), target_arch = "mipsel"))]
+#[cfg(all(not(feature = "userland"), target_arch = "mips"))]
 pub use self::mipsel::*;
 
 #[cfg(feature = "userland")]
