@@ -26,5 +26,9 @@ pub mod context;
 #[path = "./context/riscv.rs"]
 pub mod context;
 
+#[cfg(target_arch = "mipsel")]
+#[path = "./context/mipsel.rs"]
+pub mod context;
+
 pub use crate::processor::Processor;
 pub use crate::thread_pool::*;

@@ -9,6 +9,9 @@ pub use self::riscv::*;
 #[cfg(all(not(feature = "userland"), target_arch = "aarch64"))]
 pub use self::aarch64::*;
 
+#[cfg(all(not(feature = "userland"), target_arch = "mipsel"))]
+pub use self::mipsel::*;
+
 #[cfg(feature = "userland")]
 pub use self::dummy::*;
 
@@ -74,6 +77,35 @@ mod aarch64 {
         asm!("msr daifclr, #2; wfi" :::: "volatile");
     }
 }
+
+#[cfg(target_arch = "mipsel")]
+mod mipsel {
+    #[inline(always)]
+    pub unsafe fn disable_and_store() -> usize {
+        let cp0_status: usize;
+        asm!("mfc0 $0, $$12;" : "=r"(cp0_status) ::: "volatile");
+        let cp0_status_new = cp0_status & !1;
+        asm!("mtc0 $0, $$12;" : : "r"(cp0_status_new) :: "volatile");
+        cp0_status & 1
+    }
+
+    #[inline(always)]
+    pub unsafe fn restore(flags: usize) {
+        let cp0_status: usize;
+        asm!("mfc0 $0, $$12;" : "=r"(cp0_status) ::: "volatile");
+        let cp0_status_new = cp0_status | flags;
+        asm!("mtc0 $0, $$12;" : : "r"(cp0_status_new) :: "volatile");
+    }
+
+    #[inline(always)]
+    pub unsafe fn enable_and_wfi() {
+        let cp0_status: usize;
+        asm!("mfc0 $0, $$12;" : "=r"(cp0_status) ::: "volatile");
+        let cp0_status_new = cp0_status | 1;
+        asm!("mtc0 $0, $$12; wait;" : : "r"(cp0_status_new) :: "volatile");
+    }
+}
+
 
 #[cfg(feature = "userland")]
 mod dummy {
