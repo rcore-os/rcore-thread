@@ -78,7 +78,7 @@ mod aarch64 {
     }
 }
 
-#[cfg(target_arch = "mipsel")]
+#[cfg(target_arch = "mips")]
 mod mipsel {
     #[inline(always)]
     pub unsafe fn disable_and_store() -> usize {
