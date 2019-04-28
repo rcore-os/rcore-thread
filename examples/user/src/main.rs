@@ -15,12 +15,12 @@ fn main() {
     }
     // init threads
     thread::spawn(|| {
-        let tid = processor().tid();
+        let tid = thread::current().id();
         println!("[{}] yield", tid);
         thread::yield_now();
         println!("[{}] spawn", tid);
         let t2 = thread::spawn(|| {
-            let tid = processor().tid();
+            let tid = thread::current().id();
             println!("[{}] yield", tid);
             thread::yield_now();
             println!("[{}] return 8", tid);
@@ -35,7 +35,6 @@ fn main() {
     processor().run();
 }
 
-#[repr(C)]
 struct Thread {
     rsp: *mut Registers,
     stack: [u8; STACK_SIZE],

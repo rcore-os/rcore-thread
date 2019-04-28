@@ -155,11 +155,19 @@ impl<T> JoinHandle<T> {
         loop {
             trace!("try to join thread {}", self.thread.tid);
             if let Some(exit_code) = processor().manager().try_remove(self.thread.tid) {
+                // Do not call drop function
+                core::mem::forget(self);
                 // Find return value on the heap from the exit code.
                 return Ok(unsafe { *Box::from_raw(exit_code as *mut T) });
             }
             processor().manager().wait(current().id(), self.thread.tid);
             processor().yield_now();
         }
+    }
+}
+
+impl<T> Drop for JoinHandle<T> {
+    fn drop(&mut self) {
+        processor().manager().detach(self.thread.tid);
     }
 }

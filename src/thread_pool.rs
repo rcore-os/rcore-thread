@@ -6,9 +6,15 @@ use log::*;
 use spin::{Mutex, MutexGuard};
 
 struct Thread {
+    /// Current status of the thread.
     status: Status,
+    /// Next status after the thread stop running.
     status_after_stop: Status,
+    /// A waiter thread of this. It will be woken up on my exit.
     waiter: Option<Tid>,
+    /// If detached, all resources will be released on exit.
+    detached: bool,
+    /// The context of the thread.
     context: Option<Box<Context>>,
 }
 
@@ -72,6 +78,7 @@ impl ThreadPool {
             status: Status::Ready,
             status_after_stop: Status::Ready,
             waiter: None,
+            detached: false,
             context: Some(context),
         });
         self.scheduler.push(tid);
@@ -124,7 +131,7 @@ impl ThreadPool {
         proc.context = Some(context);
         match proc.status {
             Status::Ready => self.scheduler.push(tid),
-            Status::Exited(_) => self.exit_handler(proc),
+            Status::Exited(_) => self.exit_handler(proc_lock),
             _ => {}
         }
     }
@@ -159,10 +166,17 @@ impl ThreadPool {
                 _ => proc.status = status,
             }
             match proc.status {
-                Status::Exited(_) => self.exit_handler(proc),
+                Status::Exited(_) => self.exit_handler(proc_lock),
                 _ => {}
             }
         }
+    }
+
+    pub fn detach(&self, tid: Tid) {
+        let mut proc_lock = self.threads[tid].lock();
+        let proc = proc_lock.as_mut().expect("thread not exist");
+        assert!(!proc.detached);
+        proc.detached = true;
     }
 
     /// Try to remove an exited thread `tid`.
@@ -205,13 +219,18 @@ impl ThreadPool {
         self.set_status(tid, Status::Exited(code));
     }
     /// Called when a thread exit
-    fn exit_handler(&self, proc: &mut Thread) {
+    fn exit_handler(&self, mut proc_lock: MutexGuard<'_, Option<Thread>>) {
+        let proc = proc_lock.as_mut().expect("thread not exist");
         // wake up waiter
         if let Some(waiter) = proc.waiter {
             self.wakeup(waiter);
         }
         // drop its context
         proc.context = None;
+        // release all if detached
+        if proc.detached {
+            *proc_lock = None;
+        }
     }
 }
 
