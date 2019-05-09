@@ -7,8 +7,8 @@ use log::*;
 
 /// Thread executor
 ///
-/// Per-CPU struct. Defined at global.
-/// Only accessed by associated CPU with interrupt disabled.
+/// It's designed to be a per-CPU structure defined at global.
+/// You should call `init` first, then call `run` to execute threads infinitely.
 #[derive(Default)]
 pub struct Processor {
     inner: UnsafeCell<Option<ProcessorInner>>,
@@ -17,9 +17,13 @@ pub struct Processor {
 unsafe impl Sync for Processor {}
 
 struct ProcessorInner {
+    /// Processor ID
     id: usize,
-    proc: Option<(Tid, Box<Context>)>,
+    /// Current running thread
+    thread: Option<(Tid, Box<Context>)>,
+    /// The context of
     loop_context: Box<Context>,
+    /// Reference to `ThreadPool`
     manager: Arc<ThreadPool>,
 }
 
@@ -30,15 +34,18 @@ impl Processor {
         }
     }
 
+    /// Initialize the `Processor`
     pub unsafe fn init(&self, id: usize, context: Box<Context>, manager: Arc<ThreadPool>) {
         *self.inner.get() = Some(ProcessorInner {
             id,
-            proc: None,
+            thread: None,
             loop_context: context,
             manager,
         });
     }
 
+    /// Get the inner data.
+    /// This will panic if it has not been initialized.
     fn inner(&self) -> &mut ProcessorInner {
         unsafe { &mut *self.inner.get() }
             .as_mut()
@@ -58,15 +65,15 @@ impl Processor {
             interrupt::disable_and_store();
         }
         loop {
-            if let Some(proc) = inner.manager.run(inner.id) {
-                trace!("CPU{} begin running thread {}", inner.id, proc.0);
-                inner.proc = Some(proc);
+            if let Some(thread) = inner.manager.run(inner.id) {
+                trace!("CPU{} begin running thread {}", inner.id, thread.0);
+                inner.thread = Some(thread);
                 unsafe {
                     inner
                         .loop_context
-                        .switch_to(&mut *inner.proc.as_mut().unwrap().1);
+                        .switch_to(&mut *inner.thread.as_mut().unwrap().1);
                 }
-                let (tid, context) = inner.proc.take().unwrap();
+                let (tid, context) = inner.thread.take().unwrap();
                 trace!("CPU{} stop running thread {}", inner.id, tid);
                 inner.manager.stop(tid, context);
             } else {
@@ -91,7 +98,7 @@ impl Processor {
         unsafe {
             let flags = interrupt::disable_and_store();
             inner
-                .proc
+                .thread
                 .as_mut()
                 .unwrap()
                 .1
@@ -100,14 +107,26 @@ impl Processor {
         }
     }
 
+    /// Get tid of current running thread.
+    /// This will panic if this CPU is idle.
     pub fn tid(&self) -> Tid {
-        self.inner().proc.as_ref().unwrap().0
+        self.inner().thread.as_ref().unwrap().0
     }
 
+    /// Get tid of current running thread if it has.
+    pub fn tid_option(&self) -> Option<Tid> {
+        unsafe { &*self.inner.get() }
+            .as_ref()
+            .and_then(|inner| inner.thread.as_ref())
+            .map(|t| t.0)
+    }
+
+    /// Get a reference to the Context of current running thread.
     pub fn context(&self) -> &Context {
-        &*self.inner().proc.as_ref().unwrap().1
+        &*self.inner().thread.as_ref().unwrap().1
     }
 
+    /// Get the `ThreadPool`.
     pub fn manager(&self) -> &ThreadPool {
         &*self.inner().manager
     }
@@ -118,7 +137,7 @@ impl Processor {
     pub fn tick(&self) {
         // If I'm idle, tid == None, need_reschedule == false.
         // Will go back to `run()` after interrupt return.
-        let tid = self.inner().proc.as_ref().map(|p| p.0);
+        let tid = self.inner().thread.as_ref().map(|p| p.0);
         let need_reschedule = self.manager().tick(self.inner().id, tid);
         if need_reschedule {
             self.yield_now();
