@@ -203,6 +203,16 @@ impl ThreadPool {
         }
     }
 
+    /// Set status to sleeping
+    pub fn set_sleeping(&self, tid: Tid) {
+        self.set_status(tid, Status::Sleeping);
+    }
+    
+    /// Set status to running
+    pub fn set_running(&self, tid: Tid, cpu_id: usize) {
+        self.set_status(tid, Status::Running(cpu_id));
+    }
+
     pub fn wakeup(&self, tid: Tid) {
         let mut proc_lock = self.threads[tid].lock();
         if let Some(mut proc) = proc_lock.as_mut() {
