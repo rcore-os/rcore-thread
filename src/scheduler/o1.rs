@@ -25,6 +25,7 @@ impl Scheduler for O1Scheduler {
         self.inner.lock().tick(current_tid)
     }
     fn set_priority(&self, _tid: usize, _priority: u8) {}
+    fn remove(&self, _tid: usize) {}
 }
 
 impl O1Scheduler {

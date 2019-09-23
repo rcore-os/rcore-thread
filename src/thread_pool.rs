@@ -109,6 +109,10 @@ impl ThreadPool {
         self.scheduler.set_priority(tid, priority);
     }
 
+    pub fn remove(&self, tid: Tid) {
+        self.scheduler.remove(tid);
+    }
+
     /// Called by Processor to get a thread to run.
     /// The manager first mark it `Running`,
     /// then take out and return its Context.
@@ -154,7 +158,10 @@ impl ThreadPool {
             trace!("thread {} {:?} -> {:?}", tid, proc.status, status);
             match (&proc.status, &status) {
                 (Status::Ready, Status::Ready) => return,
-                (Status::Ready, _) => panic!("can not remove a thread from ready queue"),
+                (Status::Ready, Status::Exited(_)) => {
+                    self.remove(tid);
+                }
+                (Status::Ready, _) => panic!("panic in thread_pool::set_status"),
                 (Status::Exited(_), _) => panic!("can not set status for a exited thread"),
                 (Status::Sleeping, Status::Exited(_)) => self.timer.lock().stop(Event::Wakeup(tid)),
                 (Status::Running(_), Status::Ready) => {} // thread will be added to scheduler in stop()
@@ -212,7 +219,7 @@ impl ThreadPool {
             }
         }
     }
-    
+
     pub fn wakeup(&self, tid: Tid) {
         let mut proc_lock = self.threads[tid].lock();
         if let Some(mut proc) = proc_lock.as_mut() {
