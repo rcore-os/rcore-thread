@@ -88,11 +88,12 @@ impl StrideSchedulerInner {
         let ret = self.queue.pop().map(|(_, tid)| tid);
         if let Some(tid) = ret {
             if !self.infos[tid].present {
-                return None;
+                return self.pop();
             }
             let old_stride = self.infos[tid].stride;
             self.infos[tid].pass();
             let stride = self.infos[tid].stride;
+            self.infos[tid].present = false;
             trace!("stride {} {:#x} -> {:#x}", tid, old_stride, stride);
         }
         trace!("stride pop {:?}", ret);

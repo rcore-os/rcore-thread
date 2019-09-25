@@ -65,11 +65,8 @@ impl RRSchedulerInner {
         let ret = match self.infos[0].next {
             0 => None,
             tid => {
-                self._list_remove(tid);
-                if !self.infos[tid].present {
-                    return None;
-                }
                 self.infos[tid].present = false;
+                self._list_remove(tid);
                 Some(tid - 1)
             }
         };
@@ -92,6 +89,7 @@ impl RRSchedulerInner {
     }
 
     fn remove(&mut self, tid: Tid) {
+        self._list_remove(tid + 1);
         self.infos[tid + 1].present = false;
     }
 }
