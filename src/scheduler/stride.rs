@@ -53,6 +53,9 @@ impl Scheduler for StrideScheduler {
     fn set_priority(&self, tid: usize, priority: u8) {
         self.inner.lock().set_priority(tid, priority);
     }
+    fn remove(&self, tid: usize) {
+        self.inner.lock().remove(tid);
+    }
 }
 
 impl StrideScheduler {
@@ -84,9 +87,13 @@ impl StrideSchedulerInner {
     fn pop(&mut self) -> Option<Tid> {
         let ret = self.queue.pop().map(|(_, tid)| tid);
         if let Some(tid) = ret {
+            if !self.infos[tid].present {
+                return self.pop();
+            }
             let old_stride = self.infos[tid].stride;
             self.infos[tid].pass();
             let stride = self.infos[tid].stride;
+            self.infos[tid].present = false;
             trace!("stride {} {:#x} -> {:#x}", tid, old_stride, stride);
         }
         trace!("stride pop {:?}", ret);
@@ -109,5 +116,9 @@ impl StrideSchedulerInner {
     fn set_priority(&mut self, tid: Tid, priority: u8) {
         self.infos[tid].priority = priority;
         trace!("stride {} priority = {}", tid, priority);
+    }
+
+    fn remove(&mut self, tid: Tid) {
+        self.infos[tid].present = false;
     }
 }

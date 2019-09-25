@@ -28,6 +28,9 @@ impl Scheduler for RRScheduler {
         self.inner.lock().tick(current_tid)
     }
     fn set_priority(&self, _tid: usize, _priority: u8) {}
+    fn remove(&self, tid: usize) {
+        self.inner.lock().remove(tid)
+    }
 }
 
 impl RRScheduler {
@@ -83,6 +86,11 @@ impl RRSchedulerInner {
             warn!("current process rest_slice = 0, need reschedule")
         }
         *rest == 0
+    }
+
+    fn remove(&mut self, tid: Tid) {
+        self._list_remove(tid + 1);
+        self.infos[tid + 1].present = false;
     }
 }
 

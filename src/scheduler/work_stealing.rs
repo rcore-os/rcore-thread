@@ -77,4 +77,6 @@ impl Scheduler for WorkStealingScheduler {
     }
 
     fn set_priority(&self, _tid: usize, _priority: u8) {}
+
+    fn remove(&self, _tid: usize) {}
 }

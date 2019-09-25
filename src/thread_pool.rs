@@ -154,7 +154,7 @@ impl ThreadPool {
             trace!("thread {} {:?} -> {:?}", tid, proc.status, status);
             match (&proc.status, &status) {
                 (Status::Ready, Status::Ready) => return,
-                (Status::Ready, _) => panic!("can not remove a thread from ready queue"),
+                (Status::Ready, _) => self.scheduler.remove(tid),
                 (Status::Exited(_), _) => panic!("can not set status for a exited thread"),
                 (Status::Sleeping, Status::Exited(_)) => self.timer.lock().stop(Event::Wakeup(tid)),
                 (Status::Running(_), Status::Ready) => {} // thread will be added to scheduler in stop()
@@ -212,7 +212,7 @@ impl ThreadPool {
             }
         }
     }
-    
+
     pub fn wakeup(&self, tid: Tid) {
         let mut proc_lock = self.threads[tid].lock();
         if let Some(mut proc) = proc_lock.as_mut() {
