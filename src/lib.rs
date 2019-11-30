@@ -1,5 +1,4 @@
 #![cfg_attr(not(test), no_std)]
-#![feature(alloc)]
 #![feature(linkage)]
 #![feature(asm)]
 #![feature(naked_functions)]

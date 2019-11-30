@@ -1,0 +1,17 @@
+os: linux
+
+dist: bionic
+
+language: rust
+
+rust: nightly
+
+before_script:
+  - rustup component add rustfmt-preview
+
+script:
+  - cargo fmt -- --check
+  - cargo build
+  - cargo test
+  - cargo bench
+  - cargo doc
