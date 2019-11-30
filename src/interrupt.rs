@@ -3,7 +3,10 @@
 #[cfg(all(not(feature = "userland"), target_arch = "x86_64"))]
 pub use self::x86_64::*;
 
-#[cfg(all(not(feature = "userland"), any(target_arch = "riscv32", target_arch = "riscv64")))]
+#[cfg(all(
+    not(feature = "userland"),
+    any(target_arch = "riscv32", target_arch = "riscv64")
+))]
 pub use self::riscv::*;
 
 #[cfg(all(not(feature = "userland"), target_arch = "aarch64"))]
@@ -55,7 +58,6 @@ mod riscv {
     pub unsafe fn enable_and_wfi() {
         asm!("csrsi sstatus, 1 << 1; wfi" :::: "volatile");
     }
-
 }
 
 #[cfg(target_arch = "aarch64")]
@@ -106,7 +108,6 @@ mod mipsel {
     }
 }
 
-
 #[cfg(feature = "userland")]
 mod dummy {
     #[inline]
@@ -119,4 +120,14 @@ mod dummy {
 
     #[inline]
     pub unsafe fn enable_and_wfi() {}
+}
+
+/// Execute function `f` with interrupt disabled.
+pub fn no_interrupt<T>(f: impl FnOnce() -> T) -> T {
+    unsafe {
+        let flags = disable_and_store();
+        let ret = f();
+        restore(flags);
+        ret
+    }
 }

@@ -6,6 +6,7 @@
 //! - `processor`: Get a reference of the current `Processor`
 //! - `new_kernel_context`: Construct a `Context` of the new kernel thread
 
+use crate::interrupt::no_interrupt;
 use crate::processor::*;
 use crate::thread_pool::*;
 use alloc::boxed::Box;
@@ -23,7 +24,7 @@ fn processor() -> &'static Processor {
 #[linkage = "weak"]
 #[no_mangle]
 /// Construct a `Context` of the new kernel thread
-fn new_kernel_context(_entry: extern "C" fn(usize) -> !, _arg: usize) -> Box<Context> {
+fn new_kernel_context(_entry: extern "C" fn(usize) -> !, _arg: usize) -> Box<dyn Context> {
     unimplemented!("thread: Please implement and export `new_kernel_context`")
 }
 
@@ -84,7 +85,7 @@ where
         // 把f返回值在堆上的指针，以线程返回码的形式传递出去
         let exit_code = Box::into_raw(ret) as usize;
         processor().manager().exit(current().id(), exit_code);
-        processor().yield_now();
+        yield_now();
         // 再也不会被调度回来了
         unreachable!()
     }
@@ -104,14 +105,16 @@ where
 /// Cooperatively gives up a time slice to the OS scheduler.
 pub fn yield_now() {
     trace!("yield:");
-    processor().yield_now();
+    no_interrupt(|| {
+        processor().yield_now();
+    });
 }
 
 /// Blocks unless or until the current thread's token is made available.
 pub fn park() {
     trace!("park:");
     processor().manager().sleep(current().id(), 0);
-    processor().yield_now();
+    yield_now();
 }
 
 /// Blocks unless or until the current thread's token is made available.
@@ -120,7 +123,7 @@ pub fn park_action(f: impl FnOnce()) {
     trace!("park:");
     processor().manager().sleep(current().id(), 0);
     f();
-    processor().yield_now();
+    yield_now();
 }
 
 /// A handle to a thread.
@@ -161,7 +164,7 @@ impl<T> JoinHandle<T> {
                 return Ok(unsafe { *Box::from_raw(exit_code as *mut T) });
             }
             processor().manager().wait(current().id(), self.thread.tid);
-            processor().yield_now();
+            yield_now();
         }
     }
 }

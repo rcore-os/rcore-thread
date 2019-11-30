@@ -9,6 +9,10 @@ use log::*;
 ///
 /// It's designed to be a per-CPU structure defined at global.
 /// You should call `init` first, then call `run` to execute threads infinitely.
+///
+/// ## WARNING
+/// All methods must be called with interrupt disabled,
+/// or you must ensure the caller thread will not be switched to other CPUs.
 #[derive(Default)]
 pub struct Processor {
     inner: UnsafeCell<Option<ProcessorInner>>,
@@ -20,9 +24,9 @@ struct ProcessorInner {
     /// Processor ID
     id: usize,
     /// Current running thread
-    thread: Option<(Tid, Box<Context>)>,
+    thread: Option<(Tid, Box<dyn Context>)>,
     /// The context of
-    loop_context: Box<Context>,
+    loop_context: Box<dyn Context>,
     /// Reference to `ThreadPool`
     manager: Arc<ThreadPool>,
 }
@@ -35,7 +39,7 @@ impl Processor {
     }
 
     /// Initialize the `Processor`
-    pub unsafe fn init(&self, id: usize, context: Box<Context>, manager: Arc<ThreadPool>) {
+    pub unsafe fn init(&self, id: usize, context: Box<dyn Context>, manager: Arc<ThreadPool>) {
         *self.inner.get() = Some(ProcessorInner {
             id,
             thread: None,
@@ -61,9 +65,6 @@ impl Processor {
     ///   via switch back to the scheduler.
     pub fn run(&self) -> ! {
         let inner = self.inner();
-        unsafe {
-            interrupt::disable_and_store();
-        }
         loop {
             if let Some(thread) = inner.manager.run(inner.id) {
                 trace!("CPU{} begin running thread {}", inner.id, thread.0);
@@ -80,9 +81,7 @@ impl Processor {
                 trace!("CPU{} idle", inner.id);
                 unsafe {
                     interrupt::enable_and_wfi();
-                }
-                // wait for a timer interrupt
-                unsafe {
+                    // wait for a timer interrupt
                     interrupt::disable_and_store();
                 }
             }
@@ -91,19 +90,15 @@ impl Processor {
 
     /// Called by process running on this Processor.
     /// Yield and reschedule.
-    ///
-    /// The interrupt may be enabled.
-    pub fn yield_now(&self) {
+    pub(crate) fn yield_now(&self) {
         let inner = self.inner();
         unsafe {
-            let flags = interrupt::disable_and_store();
             inner
                 .thread
                 .as_mut()
                 .unwrap()
                 .1
                 .switch_to(&mut *inner.loop_context);
-            interrupt::restore(flags);
         }
     }
 
@@ -122,7 +117,7 @@ impl Processor {
     }
 
     /// Get a reference to the Context of current running thread.
-    pub fn context(&self) -> &Context {
+    pub fn context(&self) -> &dyn Context {
         &*self.inner().thread.as_ref().unwrap().1
     }
 

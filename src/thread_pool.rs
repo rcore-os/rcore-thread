@@ -15,7 +15,7 @@ struct Thread {
     /// If detached, all resources will be released on exit.
     detached: bool,
     /// The context of the thread.
-    context: Option<Box<Context>>,
+    context: Option<Box<dyn Context>>,
 }
 
 pub type Tid = usize;
@@ -37,7 +37,7 @@ enum Event {
 
 pub trait Context {
     /// Switch to target context
-    unsafe fn switch_to(&mut self, target: &mut Context);
+    unsafe fn switch_to(&mut self, target: &mut dyn Context);
 
     /// A tid is allocated for this context
     /// (temporary workaround for rCore)
@@ -46,7 +46,7 @@ pub trait Context {
 
 pub struct ThreadPool {
     threads: Vec<Mutex<Option<Thread>>>,
-    scheduler: Box<Scheduler>,
+    scheduler: Box<dyn Scheduler>,
     timer: Mutex<Timer<Event>>,
 }
 
@@ -71,7 +71,7 @@ impl ThreadPool {
 
     /// Add a new thread
     /// Calls action with tid and thread context
-    pub fn add(&self, mut context: Box<Context>) -> Tid {
+    pub fn add(&self, mut context: Box<dyn Context>) -> Tid {
         let (tid, mut thread) = self.alloc_tid();
         context.set_tid(tid);
         *thread = Some(Thread {
@@ -112,7 +112,7 @@ impl ThreadPool {
     /// Called by Processor to get a thread to run.
     /// The manager first mark it `Running`,
     /// then take out and return its Context.
-    pub(crate) fn run(&self, cpu_id: usize) -> Option<(Tid, Box<Context>)> {
+    pub(crate) fn run(&self, cpu_id: usize) -> Option<(Tid, Box<dyn Context>)> {
         self.scheduler.pop(cpu_id).map(|tid| {
             let mut proc_lock = self.threads[tid].lock();
             let mut proc = proc_lock.as_mut().expect("thread not exist");
@@ -123,7 +123,7 @@ impl ThreadPool {
 
     /// Called by Processor to finish running a thread
     /// and give its context back.
-    pub(crate) fn stop(&self, tid: Tid, context: Box<Context>) {
+    pub(crate) fn stop(&self, tid: Tid, context: Box<dyn Context>) {
         let mut proc_lock = self.threads[tid].lock();
         let proc = proc_lock.as_mut().expect("thread not exist");
         proc.status = proc.status_after_stop.clone();
