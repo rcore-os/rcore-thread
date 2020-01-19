@@ -55,7 +55,7 @@ impl Thread {
 /// Implement `switch_to` for a thread
 impl Context for Thread {
     /// Switch to another thread.
-    unsafe fn switch_to(&mut self, target: &mut Context) {
+    unsafe fn switch_to(&mut self, target: &mut dyn Context) {
         let (to, _): (&mut Thread, usize) = core::mem::transmute(target);
         Registers::switch(&mut self.rsp, &mut to.rsp);
     }
@@ -77,6 +77,6 @@ pub fn processor() -> &'static Processor {
 
 /// Implement dependency for `rcore_thread::std_thread`
 #[no_mangle]
-pub fn new_kernel_context(entry: extern "C" fn(usize) -> !, arg0: usize) -> Box<Context> {
+pub fn new_kernel_context(entry: extern "C" fn(usize) -> !, arg0: usize) -> Box<dyn Context> {
     Thread::new(entry, arg0)
 }

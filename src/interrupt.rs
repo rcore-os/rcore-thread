@@ -18,7 +18,7 @@ pub use self::mipsel::*;
 #[cfg(feature = "userland")]
 pub use self::dummy::*;
 
-#[cfg(target_arch = "x86_64")]
+#[cfg(all(not(feature = "userland"), target_arch = "x86_64"))]
 mod x86_64 {
     #[inline]
     pub unsafe fn disable_and_store() -> usize {

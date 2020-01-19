@@ -46,6 +46,11 @@ dependencies = [
 ]
 
 [[package]]
+name = "bootloader"
+version = "0.8.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
 name = "cc"
 version = "1.0.34"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -70,6 +75,7 @@ name = "example"
 version = "0.1.0"
 dependencies = [
  "blog_os 0.1.0 (git+https://github.com/phil-opp/blog_os.git?branch=post-10)",
+ "bootloader 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)",
  "linked_list_allocator 0.6.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "log 0.4.6 (registry+https://github.com/rust-lang/crates.io-index)",
  "rcore-thread 0.1.0",
@@ -376,6 +382,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum bitflags 1.0.4 (registry+https://github.com/rust-lang/crates.io-index)" = "228047a76f468627ca71776ecdebd732a3423081fcf5125585bcd7c49886ce12"
 "checksum blog_os 0.1.0 (git+https://github.com/phil-opp/blog_os.git?branch=post-10)" = "<none>"
 "checksum bootloader 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "a0808c55da932b82d3ababdaa0caa3f18522c5d2d06309b98f73adda849a3f03"
+"checksum bootloader 0.8.5 (registry+https://github.com/rust-lang/crates.io-index)" = "ff68c4f3c9c871d18eaefadc6ba160db73c1f5fb454d446a89ec0a6c612d61ab"
 "checksum cc 1.0.34 (registry+https://github.com/rust-lang/crates.io-index)" = "30f813bf45048a18eda9190fd3c6b78644146056740c43172a5a3699118588fd"
 "checksum cfg-if 0.1.6 (registry+https://github.com/rust-lang/crates.io-index)" = "082bb9b28e00d3c9d39cc03e64ce4cea0f1bb9b3fde493f0cbc008472d22bdf4"
 "checksum cpuio 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "22b8e308ccfc5acf3b82f79c0eac444cf6114cb2ac67a230ca6c177210068daa"

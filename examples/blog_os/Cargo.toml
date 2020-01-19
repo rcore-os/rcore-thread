@@ -5,6 +5,7 @@ authors = ["WangRunji <wangrunji0408@163.com>"]
 edition = "2018"
 
 [dependencies]
+bootloader = "0.8"
 log = "0.4"
 linked_list_allocator = "0.6"
 blog_os = { git = "https://github.com/phil-opp/blog_os.git", branch = "post-10" }

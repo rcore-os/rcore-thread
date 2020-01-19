@@ -3,6 +3,7 @@
 #![feature(asm)]
 #![feature(naked_functions)]
 #![feature(global_asm)]
+#![deny(warnings)]
 
 extern crate alloc;
 
