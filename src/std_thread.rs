@@ -8,41 +8,19 @@
 
 use crate::interrupt::no_interrupt;
 use crate::processor::*;
-use crate::thread_pool::*;
 use alloc::boxed::Box;
 use core::marker::PhantomData;
 use core::time::Duration;
 use log::*;
 
-#[cfg(target_os = "uefi")]
 #[allow(improper_ctypes)]
 extern "C" {
-    fn _processor() -> &'static Processor;
-    fn _new_kernel_context(entry: extern "C" fn(usize) -> !, arg: usize) -> Box<dyn Context>;
+    fn hal_thread_processor() -> &'static Processor;
 }
 
-#[linkage = "weak"]
-#[no_mangle]
 /// Get a reference of the current `Processor`
 fn processor() -> &'static Processor {
-    #[cfg(target_os = "uefi")]
-    unsafe {
-        _processor()
-    }
-    #[cfg(not(target_os = "uefi"))]
-    unimplemented!("thread: Please implement and export `processor`")
-}
-
-#[linkage = "weak"]
-#[no_mangle]
-/// Construct a `Context` of the new kernel thread
-fn new_kernel_context(_entry: extern "C" fn(usize) -> !, _arg: usize) -> Box<dyn Context> {
-    #[cfg(target_os = "uefi")]
-    unsafe {
-        _new_kernel_context(_entry, _arg)
-    }
-    #[cfg(not(target_os = "uefi"))]
-    unimplemented!("thread: Please implement and export `new_kernel_context`")
+    unsafe { hal_thread_processor() }
 }
 
 /// Gets a handle to the thread that invokes it.
@@ -108,8 +86,9 @@ where
     }
 
     // 在Processor中创建新的线程
-    let context = new_kernel_context(kernel_thread_entry::<F, T>, f as usize);
-    let tid = processor().manager().add(context);
+    let tid = processor()
+        .manager()
+        .spawn(kernel_thread_entry::<F, T>, f as usize);
 
     // 接下来看看`JoinHandle::join()`的实现
     // 了解是如何获取f返回值的

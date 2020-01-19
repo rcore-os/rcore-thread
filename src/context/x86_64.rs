@@ -1,6 +1,6 @@
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct Registers {
+struct Registers {
     r15: usize,
     r14: usize,
     r13: usize,
@@ -8,12 +8,16 @@ pub struct Registers {
     rbp: usize,
     rbx: usize,
     rip: usize,
+    _pad: usize,
 }
 
-impl Registers {
+#[repr(C)]
+pub struct Context(*mut Registers);
+
+impl Context {
     #[naked]
     #[inline(never)]
-    pub unsafe extern "sysv64" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
+    pub unsafe extern "sysv64" fn switch_to(&mut self, _target: &mut Self) {
         asm!(
         "
         // push rip (by caller)
@@ -52,16 +56,20 @@ impl Registers {
         entry: extern "C" fn(usize) -> !,
         arg0: usize,
         stack_top: usize,
-    ) -> *mut Self {
-        let context = Self {
+    ) -> Self {
+        let registers = Registers {
             rip: entry as usize,
             rbx: arg0,
-            ..Self::default()
+            ..Registers::default()
         };
         // push a Context at stack top
-        let rsp = (stack_top as *mut Self).sub(1);
-        rsp.write(context);
-        rsp
+        let sp = (stack_top as *mut Registers).sub(1);
+        sp.write(registers);
+        Context(sp)
+    }
+
+    pub unsafe fn uninit() -> Self {
+        Context(core::ptr::null_mut())
     }
 }
 

@@ -23,17 +23,20 @@ global_asm!(
 
 #[derive(Debug, Default)]
 #[repr(C)]
-pub struct Registers {
+struct Registers {
     /// Callee-saved registers
     s: [usize; 12],
     /// Return address
     ra: usize,
 }
 
-impl Registers {
+#[repr(C)]
+pub struct Context(*mut Registers);
+
+impl Context {
     #[naked]
     #[inline(never)]
-    pub unsafe extern "C" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
+    pub unsafe extern "C" fn switch_to(&mut self, _target: &mut Self) {
         asm!("
         // save from's registers
         addi  sp, sp, (-XLENB*13)
@@ -81,15 +84,19 @@ impl Registers {
         entry: extern "C" fn(usize) -> !,
         arg0: usize,
         stack_top: usize,
-    ) -> *mut Self {
-        let mut context = Self::default();
+    ) -> Self {
+        let mut context = Registers::default();
         context.ra = entry as usize;
         context.s[0] = arg0;
 
         // push a Context at stack top
-        let rsp = (stack_top as *mut Self).sub(1);
-        rsp.write(context);
-        rsp
+        let sp = (stack_top as *mut Registers).sub(1);
+        sp.write(context);
+        Context(sp)
+    }
+
+    pub unsafe fn uninit() -> Self {
+        Context(core::ptr::null_mut())
     }
 }
 

@@ -1,6 +1,6 @@
+use crate::context::Context;
 use crate::interrupt;
 use crate::thread_pool::*;
-use alloc::boxed::Box;
 use alloc::sync::Arc;
 use core::cell::UnsafeCell;
 use log::*;
@@ -24,9 +24,9 @@ struct ProcessorInner {
     /// Processor ID
     id: usize,
     /// Current running thread
-    thread: Option<(Tid, Box<dyn Context>)>,
-    /// The context of
-    loop_context: Box<dyn Context>,
+    thread: Option<(Tid, Context)>,
+    /// The context of loop thread
+    loop_context: Context,
     /// Reference to `ThreadPool`
     manager: Arc<ThreadPool>,
 }
@@ -39,11 +39,11 @@ impl Processor {
     }
 
     /// Initialize the `Processor`
-    pub unsafe fn init(&self, id: usize, context: Box<dyn Context>, manager: Arc<ThreadPool>) {
+    pub unsafe fn init(&self, id: usize, manager: Arc<ThreadPool>) {
         *self.inner.get() = Some(ProcessorInner {
             id,
             thread: None,
-            loop_context: context,
+            loop_context: Context::uninit(),
             manager,
         });
     }
@@ -69,10 +69,9 @@ impl Processor {
             if let Some(thread) = inner.manager.run(inner.id) {
                 trace!("CPU{} begin running thread {}", inner.id, thread.0);
                 inner.thread = Some(thread);
+                let target_context = &mut inner.thread.as_mut().unwrap().1;
                 unsafe {
-                    inner
-                        .loop_context
-                        .switch_to(&mut *inner.thread.as_mut().unwrap().1);
+                    inner.loop_context.switch_to(target_context);
                 }
                 let (tid, context) = inner.thread.take().unwrap();
                 trace!("CPU{} stop running thread {}", inner.id, tid);
@@ -92,13 +91,9 @@ impl Processor {
     /// Yield and reschedule.
     pub(crate) fn yield_now(&self) {
         let inner = self.inner();
+        let context = &mut inner.thread.as_mut().unwrap().1;
         unsafe {
-            inner
-                .thread
-                .as_mut()
-                .unwrap()
-                .1
-                .switch_to(&mut *inner.loop_context);
+            context.switch_to(&mut inner.loop_context);
         }
     }
 
@@ -114,11 +109,6 @@ impl Processor {
             .as_ref()
             .and_then(|inner| inner.thread.as_ref())
             .map(|t| t.0)
-    }
-
-    /// Get a reference to the Context of current running thread.
-    pub fn context(&self) -> &dyn Context {
-        &*self.inner().thread.as_ref().unwrap().1
     }
 
     /// Get the `ThreadPool`.

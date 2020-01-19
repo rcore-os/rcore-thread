@@ -1,5 +1,7 @@
+use crate::context::Context;
 use crate::scheduler::Scheduler;
 use crate::timer::Timer;
+use alloc::alloc::*;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use log::*;
@@ -15,7 +17,10 @@ struct Thread {
     /// If detached, all resources will be released on exit.
     detached: bool,
     /// The context of the thread.
-    context: Option<Box<dyn Context>>,
+    context: Option<Context>,
+    /// The stack of the thread.
+    #[allow(dead_code)]
+    stack: Stack,
 }
 
 pub type Tid = usize;
@@ -33,15 +38,6 @@ pub enum Status {
 #[derive(Eq, PartialEq)]
 enum Event {
     Wakeup(Tid),
-}
-
-pub trait Context {
-    /// Switch to target context
-    unsafe fn switch_to(&mut self, target: &mut dyn Context);
-
-    /// A tid is allocated for this context
-    /// (temporary workaround for rCore)
-    fn set_tid(&mut self, _tid: Tid) {}
 }
 
 pub struct ThreadPool {
@@ -69,17 +65,18 @@ impl ThreadPool {
         panic!("Thread number exceeded");
     }
 
-    /// Add a new thread
-    /// Calls action with tid and thread context
-    pub fn add(&self, mut context: Box<dyn Context>) -> Tid {
+    /// Spawn a new thread.
+    pub fn spawn(&self, entry: extern "C" fn(usize) -> !, arg0: usize) -> Tid {
         let (tid, mut thread) = self.alloc_tid();
-        context.set_tid(tid);
+        let stack = Stack::new();
+        let context = unsafe { Context::new(entry, arg0, stack.top()) };
         *thread = Some(Thread {
             status: Status::Ready,
             status_after_stop: Status::Ready,
             waiter: None,
             detached: false,
             context: Some(context),
+            stack,
         });
         self.scheduler.push(tid);
         tid
@@ -112,7 +109,7 @@ impl ThreadPool {
     /// Called by Processor to get a thread to run.
     /// The manager first mark it `Running`,
     /// then take out and return its Context.
-    pub(crate) fn run(&self, cpu_id: usize) -> Option<(Tid, Box<dyn Context>)> {
+    pub(crate) fn run(&self, cpu_id: usize) -> Option<(Tid, Context)> {
         self.scheduler.pop(cpu_id).map(|tid| {
             let mut proc_lock = self.threads[tid].lock();
             let mut proc = proc_lock.as_mut().expect("thread not exist");
@@ -123,7 +120,7 @@ impl ThreadPool {
 
     /// Called by Processor to finish running a thread
     /// and give its context back.
-    pub(crate) fn stop(&self, tid: Tid, context: Box<dyn Context>) {
+    pub(crate) fn stop(&self, tid: Tid, context: Context) {
         let mut proc_lock = self.threads[tid].lock();
         let proc = proc_lock.as_mut().expect("thread not exist");
         proc.status = proc.status_after_stop.clone();
@@ -248,4 +245,28 @@ fn new_vec_default<T: Default>(size: usize) -> Vec<T> {
     let mut vec = Vec::new();
     vec.resize_with(size, Default::default);
     vec
+}
+
+/// The stack of a thread.
+pub struct Stack(usize);
+
+const STACK_SIZE: usize = 0x4000; // 16KB
+const STACK_LAYOUT: Layout = unsafe { Layout::from_size_align_unchecked(STACK_SIZE, STACK_SIZE) };
+
+impl Stack {
+    fn new() -> Self {
+        let bottom = unsafe { alloc(STACK_LAYOUT) } as usize;
+        Stack(bottom)
+    }
+    fn top(&self) -> usize {
+        self.0 + STACK_SIZE
+    }
+}
+
+impl Drop for Stack {
+    fn drop(&mut self) {
+        unsafe {
+            dealloc(self.0 as _, STACK_LAYOUT);
+        }
+    }
 }
