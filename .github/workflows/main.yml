@@ -9,15 +9,18 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Check code format
-      run: cargo fmt -- --check
-    - name: Build
+    - name: Setup environment
       run: |
-        rustup component add rust-src
+        rustup component add rust-src llvm-tools-preview
         rustup target add riscv32imac-unknown-none-elf
         rustup target add riscv64imac-unknown-none-elf
         rustup target add aarch64-unknown-linux-gnu
         rustup target add mipsel-unknown-linux-gnu
+        cargo install cargo-binutils
+    - name: Check code format
+      run: cargo fmt -- --check
+    - name: Build
+      run: |
         cargo build --verbose
         cargo build --verbose --target x86_64-unknown-uefi -Z build-std=core,alloc
         cargo build --verbose --target riscv32imac-unknown-none-elf
@@ -27,6 +30,7 @@ jobs:
         cd examples
         cd uefi && make build && cd ..
         cd user && cargo build && cd ..
+        cd riscv && make build && cd ..
     - uses: actions-rs/cargo@v1
       with:
         command: test
