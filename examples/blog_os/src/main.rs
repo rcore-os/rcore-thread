@@ -13,7 +13,7 @@ use rcore_thread::{std_thread as thread, *};
 mod runtime;
 
 const MAX_CPU_NUM: usize = 1;
-const MAX_PROC_NUM: usize = 32;
+const MAX_THREAD_NUM: usize = 32;
 
 /// The entry of the kernel
 #[no_mangle]
@@ -22,7 +22,7 @@ pub extern "C" fn _start() -> ! {
 
     // init processor
     let scheduler = scheduler::RRScheduler::new(5);
-    let thread_pool = Arc::new(ThreadPool::new(scheduler, MAX_PROC_NUM));
+    let thread_pool = Arc::new(ThreadPool::new(scheduler, MAX_THREAD_NUM));
     unsafe {
         processor().init(0, thread_pool);
     }

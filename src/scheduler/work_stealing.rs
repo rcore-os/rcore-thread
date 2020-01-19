@@ -13,6 +13,9 @@ pub struct WorkStealingScheduler {
     stealers: Vec<Stealer<Tid>>,
 }
 
+// FIXME
+unsafe impl Sync for WorkStealingScheduler {}
+
 impl WorkStealingScheduler {
     pub fn new(core_num: usize) -> Self {
         let (workers, stealers) = (0..core_num).map(|_| deque::new()).unzip();

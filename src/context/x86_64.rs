@@ -14,6 +14,8 @@ struct Registers {
 #[repr(C)]
 pub struct Context(*mut Registers);
 
+unsafe impl Send for Context {}
+
 impl Context {
     #[naked]
     #[inline(never)]

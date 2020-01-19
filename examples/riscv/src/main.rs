@@ -7,6 +7,7 @@
 extern crate alloc;
 
 use alloc::sync::Arc;
+use alloc::vec::Vec;
 use rcore_thread::{std_thread as thread, *};
 
 #[macro_use]
@@ -15,46 +16,63 @@ mod runtime;
 mod sbi;
 
 #[no_mangle]
-pub extern "C" fn rust_main() -> ! {
-    crate::runtime::init();
+pub extern "C" fn rust_main(cpu_id: usize) -> ! {
+    crate::runtime::init(cpu_id);
+    println!("Hello! I'm CPU {}.", cpu_id);
 
     // init processor
     let scheduler = scheduler::RRScheduler::new(5);
-    let thread_pool = Arc::new(ThreadPool::new(scheduler, MAX_PROC_NUM));
+    let thread_pool = Arc::new(ThreadPool::new(scheduler, MAX_THREAD_NUM));
     unsafe {
-        processor().init(0, thread_pool);
+        processor().init(cpu_id, thread_pool);
+    }
+    if cpu_id != 0 {
+        processor().run();
     }
     // init threads
     thread::spawn(|| {
-        let tid = processor().tid();
+        let tid = thread::current().id();
         println!("[{}] yield", tid);
         thread::yield_now();
-        println!("[{}] spawn", tid);
-        let t2 = thread::spawn(|| {
-            let tid = processor().tid();
-            println!("[{}] yield", tid);
-            thread::yield_now();
-            println!("[{}] return 8", tid);
-            8
-        });
-        println!("[{}] join", tid);
-        let ret = t2.join();
-        println!("[{}] get {:?}", tid, ret);
+        let handles: Vec<_> = (0..8)
+            .map(|i| {
+                println!("[{}] spawn {}", tid, i);
+                thread::spawn(move || {
+                    let tid = thread::current().id();
+                    println!("[{}] yield", tid);
+                    thread::yield_now();
+                    println!("[{}] return {}", tid, i);
+                    i
+                })
+            })
+            .collect();
+        for handle in handles {
+            let ret = handle.join();
+            println!("[{}] join => {:?}", tid, ret);
+        }
         println!("[{}] exit", tid);
     });
     // run threads
     processor().run();
 }
 
-const MAX_CPU_NUM: usize = 1;
-const MAX_PROC_NUM: usize = 32;
+const MAX_CPU_NUM: usize = 4;
+const MAX_THREAD_NUM: usize = 32;
 
 /// Define global `Processor` for each core.
-static PROCESSORS: [Processor; MAX_CPU_NUM] = [Processor::new()];
+static PROCESSORS: [Processor; MAX_CPU_NUM] = [
+    Processor::new(),
+    Processor::new(),
+    Processor::new(),
+    Processor::new(),
+];
 
-/// Now we only have one core.
 fn cpu_id() -> usize {
-    0
+    let id: usize;
+    unsafe {
+        asm!("" : "={x4}"(id) ::: "volatile");
+    }
+    id
 }
 
 /// Implement dependency for `rcore_thread::std_thread`

@@ -16,7 +16,7 @@ mod work_stealing;
 type Tid = usize;
 
 /// The scheduler for a ThreadPool
-pub trait Scheduler: 'static {
+pub trait Scheduler: 'static + Send + Sync {
     /// Push a thread to the back of ready queue.
     fn push(&self, tid: Tid);
     /// Select a thread to run, pop it from the queue.

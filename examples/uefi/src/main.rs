@@ -11,7 +11,7 @@ use rcore_thread::{std_thread as thread, *};
 use uefi::prelude::*;
 
 const MAX_CPU_NUM: usize = 1;
-const MAX_PROC_NUM: usize = 32;
+const MAX_THREAD_NUM: usize = 32;
 
 #[entry]
 fn efi_main(_image: Handle, st: SystemTable<Boot>) -> uefi::Status {
@@ -19,7 +19,7 @@ fn efi_main(_image: Handle, st: SystemTable<Boot>) -> uefi::Status {
 
     // init processor
     let scheduler = scheduler::RRScheduler::new(5);
-    let thread_pool = Arc::new(ThreadPool::new(scheduler, MAX_PROC_NUM));
+    let thread_pool = Arc::new(ThreadPool::new(scheduler, MAX_THREAD_NUM));
     unsafe {
         processor().init(0, thread_pool);
     }

@@ -47,9 +47,9 @@ pub struct ThreadPool {
 }
 
 impl ThreadPool {
-    pub fn new(scheduler: impl Scheduler, max_proc_num: usize) -> Self {
+    pub fn new(scheduler: impl Scheduler, max_thread_num: usize) -> Self {
         ThreadPool {
-            threads: new_vec_default(max_proc_num),
+            threads: new_vec_default(max_thread_num),
             scheduler: Box::new(scheduler),
             timer: Mutex::new(Timer::new()),
         }

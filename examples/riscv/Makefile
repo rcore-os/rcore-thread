@@ -1,10 +1,14 @@
 target := riscv64imac-unknown-none-elf
-mode := debug
+mode := release
 kernel := target/$(target)/$(mode)/riscv
 bin := target/$(target)/$(mode)/kernel.bin
 
 objdump := rust-objdump --arch-name=riscv64
 objcopy := rust-objcopy --binary-architecture=riscv64
+
+ifeq ($(mode), release)
+	BUILD_ARGS += --release
+endif
 
 .PHONY: kernel build clean qemu run env
 
@@ -16,7 +20,7 @@ env:
 	rustup target add $(target)
 
 kernel:
-	cargo build
+	cargo build $(BUILD_ARGS)
 
 $(bin): kernel
 	$(objcopy) $(kernel) --strip-all -O binary $@
@@ -35,6 +39,7 @@ qemu: $(bin)
 		-machine virt \
 		-nographic \
 		-bios default \
+		-smp 4 \
 		-device loader,file=$(bin),addr=0x80200000
 
 run: build qemu

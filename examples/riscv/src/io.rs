@@ -1,5 +1,6 @@
 use crate::sbi;
 use core::fmt::{self, Write};
+use spin::Mutex;
 
 struct Stdout;
 
@@ -13,7 +14,8 @@ impl fmt::Write for Stdout {
 }
 
 pub fn _print(args: fmt::Arguments) {
-    Stdout.write_fmt(args).unwrap();
+    static STDOUT: Mutex<Stdout> = Mutex::new(Stdout);
+    STDOUT.lock().write_fmt(args).unwrap();
 }
 
 #[macro_export]
