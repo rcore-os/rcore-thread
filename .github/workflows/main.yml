@@ -12,7 +12,21 @@ jobs:
     - name: Check code format
       run: cargo fmt -- --check
     - name: Build
-      run: cargo build --verbose
+      run: |
+        rustup component add rust-src
+        rustup target add riscv32imac-unknown-none-elf
+        rustup target add riscv64imac-unknown-none-elf
+        rustup target add aarch64-unknown-linux-gnu
+        rustup target add mipsel-unknown-linux-gnu
+        cargo build --verbose
+        cargo build --verbose --target x86_64-unknown-uefi -Z build-std=core,alloc
+        cargo build --verbose --target riscv32imac-unknown-none-elf
+        cargo build --verbose --target riscv64imac-unknown-none-elf
+        cargo build --verbose --target aarch64-unknown-linux-gnu
+        cargo build --verbose --target mipsel-unknown-linux-gnu
+        cd examples
+        cd uefi && make build && cd ..
+        cd user && cargo build && cd ..
     - uses: actions-rs/cargo@v1
       with:
         command: test
