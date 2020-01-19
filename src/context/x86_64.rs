@@ -13,7 +13,7 @@ pub struct Registers {
 impl Registers {
     #[naked]
     #[inline(never)]
-    pub unsafe extern "C" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
+    pub unsafe extern "sysv64" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
         asm!(
         "
         // push rip (by caller)
@@ -36,14 +36,16 @@ impl Registers {
         pop r13
         pop r12
         pop rbp
-        pop rbx
+        pop rbx"
+        :::: "intel" "volatile" "alignstack");
 
         // Load arg0 for entry
-        mov rdi, rbx
+        #[cfg(target_os = "uefi")]
+        asm!("mov rdi, rcx" :::: "intel" "volatile");
+        #[cfg(not(target_os = "uefi"))]
+        asm!("mov rdi, rbx" :::: "intel" "volatile");
 
-        // pop rip
-        ret"
-        : : : : "intel" "volatile" )
+        // ret (pop rip)
     }
 
     pub unsafe fn new(
@@ -79,7 +81,7 @@ pub struct RegistersCR3 {
 impl RegistersCR3 {
     #[naked]
     #[inline(never)]
-    pub unsafe extern "C" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
+    pub unsafe extern "sysv64" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
         asm!(
         "
         // push rip (by caller)
@@ -110,14 +112,16 @@ impl RegistersCR3 {
         pop r13
         pop r12
         pop rbp
-        pop rbx
+        pop rbx"
+        :::: "intel" "volatile" "alignstack");
 
         // Load arg0 for entry
-        mov rdi, rbx
+        #[cfg(target_os = "uefi")]
+        asm!("mov rdi, rcx" :::: "intel" "volatile");
+        #[cfg(not(target_os = "uefi"))]
+        asm!("mov rdi, rbx" :::: "intel" "volatile");
 
-        // pop rip
-        ret"
-        : : : : "intel" "volatile" )
+        // ret (pop rip)
     }
 
     pub unsafe fn new(

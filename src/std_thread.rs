@@ -14,10 +14,22 @@ use core::marker::PhantomData;
 use core::time::Duration;
 use log::*;
 
+#[cfg(target_os = "uefi")]
+#[allow(improper_ctypes)]
+extern "C" {
+    fn _processor() -> &'static Processor;
+    fn _new_kernel_context(entry: extern "C" fn(usize) -> !, arg: usize) -> Box<dyn Context>;
+}
+
 #[linkage = "weak"]
 #[no_mangle]
 /// Get a reference of the current `Processor`
 fn processor() -> &'static Processor {
+    #[cfg(target_os = "uefi")]
+    unsafe {
+        _processor()
+    }
+    #[cfg(not(target_os = "uefi"))]
     unimplemented!("thread: Please implement and export `processor`")
 }
 
@@ -25,6 +37,11 @@ fn processor() -> &'static Processor {
 #[no_mangle]
 /// Construct a `Context` of the new kernel thread
 fn new_kernel_context(_entry: extern "C" fn(usize) -> !, _arg: usize) -> Box<dyn Context> {
+    #[cfg(target_os = "uefi")]
+    unsafe {
+        _new_kernel_context(_entry, _arg)
+    }
+    #[cfg(not(target_os = "uefi"))]
     unimplemented!("thread: Please implement and export `new_kernel_context`")
 }
 
