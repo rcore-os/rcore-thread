@@ -30,14 +30,13 @@ impl Scheduler for O1Scheduler {
     }
 }
 
-impl O1Scheduler {
-    pub fn new() -> Self {
-        let inner = O1SchedulerInner {
-            active_queue: 0,
-            queues: [Vec::new(), Vec::new()],
-        };
+impl Default for O1Scheduler {
+    fn default() -> Self {
         O1Scheduler {
-            inner: Mutex::new(inner),
+            inner: Mutex::new(O1SchedulerInner {
+                active_queue: 0,
+                queues: [Vec::new(), Vec::new()],
+            }),
         }
     }
 }

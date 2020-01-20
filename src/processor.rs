@@ -39,6 +39,10 @@ impl Processor {
     }
 
     /// Initialize the `Processor`
+    ///
+    /// # Safety
+    ///
+    /// It must be called first on runtime.
     pub unsafe fn init(&self, id: usize, manager: Arc<ThreadPool>) {
         *self.inner.get() = Some(ProcessorInner {
             id,
@@ -50,6 +54,7 @@ impl Processor {
 
     /// Get the inner data.
     /// This will panic if it has not been initialized.
+    #[allow(clippy::mut_from_ref)]
     fn inner(&self) -> &mut ProcessorInner {
         unsafe { &mut *self.inner.get() }
             .as_mut()

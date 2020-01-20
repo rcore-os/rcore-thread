@@ -22,6 +22,7 @@ jobs:
     - name: Build
       run: |
         cargo build --verbose
+        cargo clippy --verbose
         cargo build --verbose --target x86_64-unknown-uefi -Z build-std=core,alloc
         cargo build --verbose --target riscv32imac-unknown-none-elf
         cargo build --verbose --target riscv64imac-unknown-none-elf
@@ -31,14 +32,16 @@ jobs:
         cd uefi && make build && cd ..
         cd user && cargo build && cd ..
         cd riscv && make build && cd ..
-    - uses: actions-rs/cargo@v1
+    - name: Test
+      uses: actions-rs/cargo@v1
       with:
         command: test
         args: --all-features --no-fail-fast  # Customize args for your own needs
       env:
         CARGO_INCREMENTAL: '0'
         RUSTFLAGS: '-Zprofile -Ccodegen-units=1 -Cinline-threshold=0 -Clink-dead-code -Coverflow-checks=off -Zno-landing-pads'
-    - id: coverage
+    - name: Install grcov
+      id: coverage
       uses: actions-rs/grcov@v0.1
     - name: Coveralls upload
       uses: coverallsapp/github-action@master

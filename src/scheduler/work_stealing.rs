@@ -30,7 +30,7 @@ impl Scheduler for WorkStealingScheduler {
         static mut WORKER_CPU: usize = 0;
         let n = self.workers.len();
         let mut cpu = unsafe {
-            WORKER_CPU = WORKER_CPU + 1;
+            WORKER_CPU += 1;
             if WORKER_CPU >= n {
                 WORKER_CPU -= n;
             }

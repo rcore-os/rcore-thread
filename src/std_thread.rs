@@ -38,7 +38,7 @@ pub fn sleep(dur: Duration) {
     park();
 
     fn dur_to_ticks(dur: Duration) -> usize {
-        return dur.as_secs() as usize * 100 + dur.subsec_nanos() as usize / 10_000_000;
+        dur.as_secs() as usize * 100 + dur.subsec_nanos() as usize / 10_000_000
     }
 }
 
@@ -92,10 +92,10 @@ where
 
     // 接下来看看`JoinHandle::join()`的实现
     // 了解是如何获取f返回值的
-    return JoinHandle {
+    JoinHandle {
         thread: Thread { tid },
         mark: PhantomData,
-    };
+    }
 }
 
 /// Cooperatively gives up a time slice to the OS scheduler.

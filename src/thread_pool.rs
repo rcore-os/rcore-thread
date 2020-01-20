@@ -162,9 +162,8 @@ impl ThreadPool {
                 Status::Running(_) => proc.status_after_stop = status,
                 _ => proc.status = status,
             }
-            match proc.status {
-                Status::Exited(_) => self.exit_handler(proc_lock),
-                _ => {}
+            if let Status::Exited(_) = proc.status {
+                self.exit_handler(proc_lock);
             }
         }
     }
