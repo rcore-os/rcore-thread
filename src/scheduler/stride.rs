@@ -19,8 +19,7 @@ pub struct StrideSchedulerInner {
 
 #[derive(Debug, Default, Copy, Clone)]
 struct StrideProcInfo {
-    valid: bool,    // Whether it is exit
-    present: usize, // Times it is pushed
+    present: bool,
     rest_slice: usize,
     stride: Stride,
     priority: u8,
@@ -98,8 +97,7 @@ impl StrideSchedulerInner {
     fn push(&mut self, tid: Tid) {
         expand(&mut self.infos, tid);
         let info = &mut self.infos[tid];
-        info.present += 1;
-        info.valid = true;
+        info.present = true;
         if info.rest_slice == 0 {
             info.rest_slice = self.max_time_slice;
         }
@@ -111,13 +109,13 @@ impl StrideSchedulerInner {
         let ret = self.queue.pop().map(|Reverse((_, tid))| tid);
         if let Some(tid) = ret {
             let info = &mut self.infos[tid];
-            if !info.valid {
+            if !info.present {
                 return self.pop();
             }
             let old_stride = info.stride;
             info.pass();
             let stride = info.stride;
-            info.present -= 1;
+            info.present = false;
             trace!("stride {} {:#x} -> {:#x}", tid, old_stride.0, stride.0);
         }
         trace!("stride pop {:?}", ret);
@@ -126,7 +124,7 @@ impl StrideSchedulerInner {
 
     fn tick(&mut self, current: Tid) -> bool {
         expand(&mut self.infos, current);
-        assert!(!self.infos[current].valid);
+        assert!(!self.infos[current].present);
 
         let rest = &mut self.infos[current].rest_slice;
         if *rest > 0 {
@@ -143,6 +141,6 @@ impl StrideSchedulerInner {
     }
 
     fn remove(&mut self, tid: Tid) {
-        self.infos[tid].valid = false;
+        self.infos[tid].present = false;
     }
 }
