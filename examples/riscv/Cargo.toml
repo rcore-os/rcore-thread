@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-linked_list_allocator = "0.6"
+linked_list_allocator = "0.8"
 rcore-thread = { path = "../.." }
