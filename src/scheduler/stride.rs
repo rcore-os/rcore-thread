@@ -5,6 +5,7 @@
 //! When a task is rescheduled, its stride is added to proportional to 1 / priority.
 
 use super::*;
+use core::cmp::{Ordering, Reverse};
 
 pub struct StrideScheduler {
     inner: Mutex<StrideSchedulerInner>,
@@ -13,7 +14,7 @@ pub struct StrideScheduler {
 pub struct StrideSchedulerInner {
     max_time_slice: usize,
     infos: Vec<StrideProcInfo>,
-    queue: BinaryHeap<(Stride, Tid)>, // It's max heap, so pass < 0
+    queue: BinaryHeap<Reverse<(Stride, Tid)>>, // It's max heap, so use Reverse
 }
 
 #[derive(Debug, Default, Copy, Clone)]
@@ -24,21 +25,42 @@ struct StrideProcInfo {
     priority: u8,
 }
 
-impl StrideProcInfo {
-    fn pass(&mut self) {
-        const BIG_STRIDE: Stride = 1 << 20;
-        let pass = if self.priority == 0 {
-            BIG_STRIDE
-        } else {
-            BIG_STRIDE / self.priority as Stride
-        };
-        // FIXME: overflowing_add is not working ???
-        // self.stride.overflowing_add(pass);
-        self.stride += pass;
+const BIG_STRIDE: Stride = Stride(0x7FFFFFFF);
+
+#[derive(Debug, Default, Copy, Clone, PartialEq, Eq)]
+struct Stride(u32);
+
+impl PartialOrd for Stride {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
-type Stride = i32;
+impl Ord for Stride {
+    fn cmp(&self, other: &Self) -> Ordering {
+        if self.0 == other.0 {
+            Ordering::Equal
+        } else {
+            let sub = other.0.overflowing_sub(self.0).0;
+            if sub <= BIG_STRIDE.0 {
+                Ordering::Less
+            } else {
+                Ordering::Greater
+            }
+        }
+    }
+}
+
+impl StrideProcInfo {
+    fn pass(&mut self) {
+        let pass = if self.priority == 0 {
+            BIG_STRIDE.0
+        } else {
+            BIG_STRIDE.0 / self.priority as u32
+        };
+        self.stride = Stride(self.stride.0.overflowing_add(pass).0);
+    }
+}
 
 impl Scheduler for StrideScheduler {
     fn push(&self, tid: usize) {
@@ -75,26 +97,26 @@ impl StrideSchedulerInner {
     fn push(&mut self, tid: Tid) {
         expand(&mut self.infos, tid);
         let info = &mut self.infos[tid];
-        assert!(!info.present);
         info.present = true;
         if info.rest_slice == 0 {
             info.rest_slice = self.max_time_slice;
         }
-        self.queue.push((-info.stride, tid));
+        self.queue.push(Reverse((info.stride, tid)));
         trace!("stride push {}", tid);
     }
 
     fn pop(&mut self) -> Option<Tid> {
-        let ret = self.queue.pop().map(|(_, tid)| tid);
+        let ret = self.queue.pop().map(|Reverse((_, tid))| tid);
         if let Some(tid) = ret {
-            if !self.infos[tid].present {
+            let info = &mut self.infos[tid];
+            if !info.present {
                 return self.pop();
             }
-            let old_stride = self.infos[tid].stride;
-            self.infos[tid].pass();
-            let stride = self.infos[tid].stride;
-            self.infos[tid].present = false;
-            trace!("stride {} {:#x} -> {:#x}", tid, old_stride, stride);
+            let old_stride = info.stride;
+            info.pass();
+            let stride = info.stride;
+            info.present = false;
+            trace!("stride {} {:#x} -> {:#x}", tid, old_stride.0, stride.0);
         }
         trace!("stride pop {:?}", ret);
         ret
