@@ -64,6 +64,9 @@ impl Processor {
     /// - eventually that process transfers control
     ///   via switch back to the scheduler.
     pub fn run(&self) -> ! {
+        unsafe {
+            interrupt::disable_and_store();
+        }
         let inner = self.inner();
         loop {
             if let Some(thread) = inner.manager.run(inner.id) {
@@ -77,6 +80,11 @@ impl Processor {
                 let (tid, context) = inner.thread.take().unwrap();
                 trace!("CPU{} stop running thread {}", inner.id, tid);
                 inner.manager.stop(tid, context);
+                unsafe {
+                    interrupt::enable_and_wfi();
+                    // wait for a timer interrupt
+                    interrupt::disable_and_store();
+                }
             } else {
                 trace!("CPU{} idle", inner.id);
                 unsafe {
