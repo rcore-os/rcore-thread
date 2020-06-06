@@ -1,6 +1,6 @@
 #![cfg_attr(not(test), no_std)]
 #![feature(linkage)]
-#![feature(asm)]
+#![feature(llvm_asm)]
 #![feature(naked_functions)]
 #![feature(global_asm)]
 #![deny(warnings)]

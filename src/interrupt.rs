@@ -23,20 +23,20 @@ mod x86_64 {
     #[inline]
     pub unsafe fn disable_and_store() -> usize {
         let rflags: usize;
-        asm!("pushfq; popq $0; cli" : "=r"(rflags) ::: "volatile");
+        llvm_asm!("pushfq; popq $0; cli" : "=r"(rflags) ::: "volatile");
         rflags & (1 << 9)
     }
 
     #[inline]
     pub unsafe fn restore(flags: usize) {
         if flags != 0 {
-            asm!("sti" :::: "volatile");
+            llvm_asm!("sti" :::: "volatile");
         }
     }
 
     #[inline]
     pub unsafe fn enable_and_wfi() {
-        asm!("sti; hlt" :::: "volatile");
+        llvm_asm!("sti; hlt" :::: "volatile");
     }
 }
 
@@ -45,18 +45,18 @@ mod riscv {
     #[inline]
     pub unsafe fn disable_and_store() -> usize {
         let sstatus: usize;
-        asm!("csrci sstatus, 1 << 1" : "=r"(sstatus) ::: "volatile");
+        llvm_asm!("csrci sstatus, 1 << 1" : "=r"(sstatus) ::: "volatile");
         sstatus & (1 << 1)
     }
 
     #[inline]
     pub unsafe fn restore(flags: usize) {
-        asm!("csrs sstatus, $0" :: "r"(flags) :: "volatile");
+        llvm_asm!("csrs sstatus, $0" :: "r"(flags) :: "volatile");
     }
 
     #[inline]
     pub unsafe fn enable_and_wfi() {
-        asm!("csrsi sstatus, 1 << 1; wfi" :::: "volatile");
+        llvm_asm!("csrsi sstatus, 1 << 1; wfi" :::: "volatile");
     }
 }
 
@@ -65,18 +65,18 @@ mod aarch64 {
     #[inline]
     pub unsafe fn disable_and_store() -> usize {
         let daif: u32;
-        asm!("mrs $0, DAIF; msr daifset, #2": "=r"(daif) ::: "volatile");
+        llvm_asm!("mrs $0, DAIF; msr daifset, #2": "=r"(daif) ::: "volatile");
         daif as usize
     }
 
     #[inline]
     pub unsafe fn restore(flags: usize) {
-        asm!("msr DAIF, $0" :: "r"(flags as u32) :: "volatile");
+        llvm_asm!("msr DAIF, $0" :: "r"(flags as u32) :: "volatile");
     }
 
     #[inline]
     pub unsafe fn enable_and_wfi() {
-        asm!("msr daifclr, #2; wfi" :::: "volatile");
+        llvm_asm!("msr daifclr, #2; wfi" :::: "volatile");
     }
 }
 
@@ -85,26 +85,26 @@ mod mipsel {
     #[inline(always)]
     pub unsafe fn disable_and_store() -> usize {
         let cp0_status: usize;
-        asm!("mfc0 $0, $$12;" : "=r"(cp0_status) ::: "volatile");
+        llvm_asm!("mfc0 $0, $$12;" : "=r"(cp0_status) ::: "volatile");
         let cp0_status_new = cp0_status & !1;
-        asm!("mtc0 $0, $$12;" : : "r"(cp0_status_new) :: "volatile");
+        llvm_asm!("mtc0 $0, $$12;" : : "r"(cp0_status_new) :: "volatile");
         cp0_status & 1
     }
 
     #[inline(always)]
     pub unsafe fn restore(flags: usize) {
         let cp0_status: usize;
-        asm!("mfc0 $0, $$12;" : "=r"(cp0_status) ::: "volatile");
+        llvm_asm!("mfc0 $0, $$12;" : "=r"(cp0_status) ::: "volatile");
         let cp0_status_new = cp0_status | flags;
-        asm!("mtc0 $0, $$12;" : : "r"(cp0_status_new) :: "volatile");
+        llvm_asm!("mtc0 $0, $$12;" : : "r"(cp0_status_new) :: "volatile");
     }
 
     #[inline(always)]
     pub unsafe fn enable_and_wfi() {
         let cp0_status: usize;
-        asm!("mfc0 $0, $$12;" : "=r"(cp0_status) ::: "volatile");
+        llvm_asm!("mfc0 $0, $$12;" : "=r"(cp0_status) ::: "volatile");
         let cp0_status_new = cp0_status | 1;
-        asm!("mtc0 $0, $$12; wait;" : : "r"(cp0_status_new) :: "volatile");
+        llvm_asm!("mtc0 $0, $$12; wait;" : : "r"(cp0_status_new) :: "volatile");
     }
 }
 

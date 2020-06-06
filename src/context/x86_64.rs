@@ -14,7 +14,7 @@ impl Registers {
     #[naked]
     #[inline(never)]
     pub unsafe extern "sysv64" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
-        asm!(
+        llvm_asm!(
         "
         // push rip (by caller)
 
@@ -41,9 +41,9 @@ impl Registers {
 
         // Load arg0 for entry
         #[cfg(target_os = "uefi")]
-        asm!("mov rdi, rcx" :::: "intel" "volatile");
+        llvm_asm!("mov rdi, rcx" :::: "intel" "volatile");
         #[cfg(not(target_os = "uefi"))]
-        asm!("mov rdi, rbx" :::: "intel" "volatile");
+        llvm_asm!("mov rdi, rbx" :::: "intel" "volatile");
 
         // ret (pop rip)
     }
@@ -82,7 +82,7 @@ impl RegistersCR3 {
     #[naked]
     #[inline(never)]
     pub unsafe extern "sysv64" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
-        asm!(
+        llvm_asm!(
         "
         // push rip (by caller)
 
@@ -117,9 +117,9 @@ impl RegistersCR3 {
 
         // Load arg0 for entry
         #[cfg(target_os = "uefi")]
-        asm!("mov rdi, rcx" :::: "intel" "volatile");
+        llvm_asm!("mov rdi, rcx" :::: "intel" "volatile");
         #[cfg(not(target_os = "uefi"))]
-        asm!("mov rdi, rbx" :::: "intel" "volatile");
+        llvm_asm!("mov rdi, rbx" :::: "intel" "volatile");
 
         // ret (pop rip)
     }
