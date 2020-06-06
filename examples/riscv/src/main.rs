@@ -1,6 +1,6 @@
 #![no_std]
 #![no_main]
-#![feature(asm, global_asm)]
+#![feature(llvm_asm, global_asm)]
 #![feature(alloc_error_handler)]
 #![deny(warnings)]
 
