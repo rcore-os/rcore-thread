@@ -12,7 +12,7 @@ endif
 build:
 	cargo build $(BUILD_ARGS)
 
-run:
+run: build
 	mkdir -p $(ESP)/EFI/Boot
 	cp $(EFI) $(ESP)/EFI/Boot/BootX64.efi
 	qemu-system-x86_64 \

@@ -34,7 +34,7 @@ impl Registers {
     #[naked]
     #[inline(never)]
     pub unsafe extern "C" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
-        asm!("
+        llvm_asm!("
         // save from's registers
         addi  sp, sp, (-XLENB*13)
         STORE sp, 0(a0)
@@ -108,7 +108,7 @@ impl RegistersSatp {
     #[naked]
     #[inline(never)]
     pub unsafe extern "C" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
-        asm!("
+        llvm_asm!("
         // save from's registers
         addi  sp, sp, (-XLENB*14)
         STORE sp, 0(a0)

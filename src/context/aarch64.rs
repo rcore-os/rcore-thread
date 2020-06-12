@@ -9,7 +9,7 @@ impl Registers {
     #[naked]
     #[inline(never)]
     pub unsafe extern "C" fn switch(_from: &mut *mut Self, _to: &mut *mut Self) {
-        asm!(
+        llvm_asm!(
         "
         // store self sp
         mov x10, #-(12 * 8)

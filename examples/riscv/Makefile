@@ -1,12 +1,16 @@
 target := riscv64imac-unknown-none-elf
-mode := debug
+mode ?= debug
 kernel := target/$(target)/$(mode)/riscv
 bin := target/$(target)/$(mode)/kernel.bin
 
 objdump := rust-objdump --arch-name=riscv64
 objcopy := rust-objcopy --binary-architecture=riscv64
 
-.PHONY: kernel build clean qemu run env
+ifeq ($(mode), release)
+	BUILD_ARGS += --release
+endif
+
+.PHONY: build clean qemu run env
 
 build: $(bin)
 
@@ -15,10 +19,10 @@ env:
 	rustup component add llvm-tools-preview rustfmt
 	rustup target add $(target)
 
-kernel:
-	cargo build
+$(kernel):
+	cargo build $(BUILD_ARGS)
 
-$(bin): kernel
+$(bin): $(kernel)
 	$(objcopy) $(kernel) --strip-all -O binary $@
 
 asm:

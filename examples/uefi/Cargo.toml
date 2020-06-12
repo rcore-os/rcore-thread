@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 log = "0.4"
-uefi = "0.4.2"
-uefi-services = "0.2.0"
+uefi = "=0.4.6"
+uefi-services = "=0.2.4"
+rlibc = "1.0.0"
 rcore-thread = { path = "../.." }

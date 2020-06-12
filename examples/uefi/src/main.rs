@@ -4,6 +4,7 @@
 #![deny(warnings)]
 
 extern crate alloc;
+extern crate rlibc;
 
 use alloc::{boxed::Box, sync::Arc};
 use log::*;
