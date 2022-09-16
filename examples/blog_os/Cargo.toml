@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 bootloader = "0.8"
 log = "0.4"
-linked_list_allocator = "0.6"
+linked_list_allocator = "0.10"
 blog_os = { git = "https://github.com/phil-opp/blog_os.git", branch = "post-10" }
 rcore-thread = { path = "../.." }
 
